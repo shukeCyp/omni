@@ -1,0 +1,4 @@
+pywebview
+peewee
+requests
+Pillow

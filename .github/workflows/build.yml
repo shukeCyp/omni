@@ -1,0 +1,94 @@
+name: Build & Package
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller Pillow
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Package Windows app
+        run: |
+          pyinstaller --name "荷塘omni" --onefile --windowed --icon icon.png --add-data "static;static" main.py
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows
+          path: dist/荷塘omni.exe
+          compression-level: 0
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller Pillow
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Package macOS app
+        run: |
+          pyinstaller --name "荷塘omni" --onefile --windowed --icon icon.png --add-data "static:static" main.py
+
+      - name: Create DMG
+        run: |
+          mkdir -p dmg
+          if [ -d "dist/荷塘omni.app" ]; then
+            cp -r "dist/荷塘omni.app" dmg/
+          elif [ -f "dist/荷塘omni" ]; then
+            cp "dist/荷塘omni" dmg/
+          fi
+          hdiutil create -volname "荷塘omni" -srcfolder dmg -ov -format UDZO "dist/荷塘omni.dmg"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS
+          path: dist/荷塘omni.dmg
+          compression-level: 0
